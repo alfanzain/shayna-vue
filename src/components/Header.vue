@@ -17,9 +17,9 @@
                 <div class="row">
                     <div class="col-lg-2 col-md-2">
                         <div class="logo">
-                            <a href="./index.html">
+                            <router-link to="/">
                                 <img src="img/logo_website_shayna.png" alt="" />
-                            </a>
+                            </router-link>
                         </div>
                     </div>
                     <div class="col-lg-7 col-md-7"></div>
@@ -29,37 +29,23 @@
                                 Keranjang Belanja &nbsp;
                                 <a href="#">
                                     <i class="icon_bag_alt"></i>
-                                    <span>3</span>
+                                    <span>{{ userCart.reduce((total, product) => product.count + total, 0) }}</span>
                                 </a>
-                                <div class="cart-hover">
+                                <div class="cart-hover" v-if="userCart && userCart.length > 0">
                                     <div class="select-items">
                                         <table>
                                             <tbody>
-                                                <tr>
+                                                <tr v-for="cart in userCart" :key="cart.id">
                                                     <td class="si-pic">
-                                                        <img src="img/select-product-1.jpg" alt="" />
+                                                        <img class="photo-item" :src="cart.image" alt="" />
                                                     </td>
                                                     <td class="si-text">
                                                         <div class="product-selected">
-                                                            <p>$60.00 x 1</p>
-                                                            <h6>Kabino Bedside Table</h6>
+                                                            <p>Rp {{ cart.price }} x {{ cart.count }}</p>
+                                                            <h6>{{ cart.name }}</h6>
                                                         </div>
                                                     </td>
-                                                    <td class="si-close">
-                                                        <i class="ti-close"></i>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="si-pic">
-                                                        <img src="img/select-product-2.jpg" alt="" />
-                                                    </td>
-                                                    <td class="si-text">
-                                                        <div class="product-selected">
-                                                            <p>$60.00 x 1</p>
-                                                            <h6>Kabino Bedside Table</h6>
-                                                        </div>
-                                                    </td>
-                                                    <td class="si-close">
+                                                    <td @click="removeItem(cart.id)" class="si-close">
                                                         <i class="ti-close"></i>
                                                     </td>
                                                 </tr>
@@ -68,11 +54,16 @@
                                     </div>
                                     <div class="select-total">
                                         <span>total:</span>
-                                        <h5>$120.00</h5>
+                                        <h5>Rp {{ userCart.reduce((total, product) => product.price * product.count + total, 0) }}</h5>
                                     </div>
                                     <div class="select-button">
                                         <router-link class="primary-btn checkout-btn" to="/cart">CHECK OUT</router-link>
                                     </div>
+                                </div>
+                                <div class="cart-hover" v-else>
+                                    <small>
+                                        Oops. Keranjang masih kosong nich~
+                                    </small>
                                 </div>
                             </li>
                         </ul>
@@ -86,5 +77,36 @@
 <script>
 export default {
     name: 'Header',
+    data() {
+        return {
+            userCart: [],
+        }
+    },
+    methods: {
+        removeItem(id) {
+            this.userCart = this.userCart.filter((p) => {
+                return p.id !== id
+            })
+
+            const parsed = JSON.stringify(this.userCart)
+            localStorage.setItem('userCart', parsed)
+        },
+    },
+    mounted() {
+        if (localStorage.getItem('userCart')) {
+            try {
+                this.userCart = JSON.parse(localStorage.getItem('userCart'));
+            } catch(e) {
+                localStorage.removeItem('userCart');
+            }
+        }
+    }
 }
 </script>
+
+<style scoped>
+.photo-item {
+    max-width: 70px;
+    max-height: 70px;
+}
+</style>

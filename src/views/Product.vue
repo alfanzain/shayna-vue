@@ -10,7 +10,7 @@
             <div class="row">
                 <div class="col-lg-12">
                     <div class="breadcrumb-text product-more">
-                        <router-link><i class="fa fa-home"></i> Home</router-link>
+                        <router-link to="/"><i class="fa fa-home"></i> Home</router-link>
                         <span>Detail</span>
                     </div>
                 </div>
@@ -26,26 +26,23 @@
                 <div class="col-lg-12">
                     <div class="row">
                         <div class="col-lg-6">
-                            <div class="product-pic-zoom">
-                                <img class="product-big-img" :src="productImageDefault" alt="" />
+                            <div class="product-pic-zoom" v-if="productDetail && productDetail.galleries.length > 0">
+                                <img class="product-big-img" :src="productImageView" alt="" />
                             </div>
-                            <div class="product-thumbs">
+                            <div class="product-pic-zoom" v-else>
+                                <img class="product-big-img" src="img/products/no-image.png" alt="" />
+                            </div>
+                            <div class="product-thumbs" v-if="productDetail && productDetail.galleries.length > 0">
                                 <carousel class="product-thumbs-track ps-slider" :loop="false" :nav="true" :dots="false" :margin="10">
 
-                                    <div class="pt active" @click="changeImage(thumbs[0])" :class="thumbs[0] == productImageDefault ? 'active' : ''">
-                                        <img :src="thumbs[0]" alt="" />
-                                    </div>
-
-                                    <div class="pt" @click="changeImage(thumbs[1])" :class="thumbs[1] == productImageDefault ? 'active' : ''">
-                                        <img :src="thumbs[1]" alt="" />
-                                    </div>
-
-                                    <div class="pt" @click="changeImage(thumbs[2])" :class="thumbs[2] == productImageDefault ? 'active' : ''">
-                                        <img :src="thumbs[2]" alt="" />
-                                    </div>
-
-                                    <div class="pt" @click="changeImage(thumbs[3])" :class="thumbs[3] == productImageDefault ? 'active' : ''">
-                                        <img :src="thumbs[3]" alt="" />
+                                    <div 
+                                        class="pt" 
+                                        v-for="image in productDetail.galleries" 
+                                        :key="image.id"
+                                        @click="changeImage(image.photo)" 
+                                        :class="image.photo == productImageView ? 'active' : ''"
+                                    >
+                                        <img :src="image.photo" alt="" />
                                     </div>
 
                                 </carousel>
@@ -54,23 +51,15 @@
                         <div class="col-lg-6">
                             <div class="product-details">
                                 <div class="pd-title">
-                                    <span>oranges</span>
-                                    <h3>Pure Pineapple</h3>
+                                    <span>{{ productDetail && productDetail.type }}</span>
+                                    <h3>{{ productDetail && productDetail.name }}</h3>
                                 </div>
                                 <div class="pd-desc">
-                                    <p>
-                                        Lorem ipsum dolor sit amet consectetur adipisicing elit. Corporis, error officia. Rem aperiam laborum voluptatum vel, pariatur modi hic provident eum iure natus quos non a sequi, id accusantium! Autem.
-                                    </p>
-                                    <p>
-                                        Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quam possimus quisquam animi, commodi, nihil voluptate nostrum neque architecto illo officiis doloremque et corrupti cupiditate voluptatibus error illum. Commodi expedita animi nulla aspernatur.
-                                        Id asperiores blanditiis, omnis repudiandae iste inventore cum, quam sint molestiae accusamus voluptates ex tempora illum sit perspiciatis. Nostrum dolor tenetur amet, illo natus magni veniam quia sit nihil dolores.
-                                        Commodi ratione distinctio harum voluptatum velit facilis voluptas animi non laudantium, id dolorem atque perferendis enim ducimus? A exercitationem recusandae aliquam quod. Itaque inventore obcaecati, unde quam
-                                        impedit praesentium veritatis quis beatae ea atque perferendis voluptates velit architecto?
-                                    </p>
-                                    <h4>$495.00</h4>
+                                    <div v-html="productDetail && productDetail.description"></div>
+                                    <h4>Rp {{ productDetail && productDetail.price }}</h4>
                                 </div>
                                 <div class="quantity">
-                                    <a href="shopping-cart.html" class="primary-btn pd-cart">Add To Cart</a>
+                                    <a @click="saveCart(productDetail)" class="primary-btn pd-cart" style="cursor: pointer">Add To Cart</a>
                                 </div>
                             </div>
                         </div>
@@ -99,29 +88,69 @@ import RelatedProduct from '@/components/RelatedProduct.vue'
 
 import carousel from 'vue-owl-carousel'
 
+import axios from 'axios'
+
 export default {
-  name: 'Home',
-  components: {
-    Header,
-    Footer,
-    RelatedProduct,
-    carousel
-  },
-  data() {
-    return {
-      productImageDefault : "img/mickey1.jpg",
-      thumbs : [
-        'img/mickey1.jpg',
-        'img/mickey2.jpg',
-        'img/mickey3.jpg',
-        'img/mickey4.jpg',
-      ]
+    name: 'Home',
+    components: {
+        Header,
+        Footer,
+        RelatedProduct,
+        carousel
+    },
+    data() {
+        return {
+            productDetail: null,
+            productImageView: null,
+            userCart: [],
+        }
+    },
+    methods: {
+        changeImage(urlImage) {
+            this.productImageView = urlImage
+        },
+        saveCart(product) {
+            let productExistOnCart = this.userCart.find((p) => {
+                return p.id === product.id
+            })
+
+            if(productExistOnCart)
+                productExistOnCart.count++
+            else
+                this.userCart.push(
+                    {
+                        id: product.id,
+                        name: product.name,
+                        price: product.price,
+                        image: this.productImageView,
+                        count: 1
+                    }
+                )
+
+            let parsed = JSON.stringify(this.userCart)
+            localStorage.setItem('userCart', parsed)
+        }
+    },
+    mounted() {
+        if (localStorage.getItem('userCart')) {
+            try {
+                this.userCart = JSON.parse(localStorage.getItem('userCart'));
+            } catch(e) {
+                localStorage.removeItem('userCart');
+            }
+        }
+
+        axios
+            .get("http://shayna-laravel-admin.localhost/api/products/" + this.$route.params.id, {
+                params: {
+                    gallery: "true"
+                }
+            })
+            .then(res => {
+                this.productDetail = res.data.data
+                this.productImageView = this.productDetail.galleries.find(el => el.is_default).photo
+            })
+            .catch(err => console.log(err))
     }
-  },
-  methods: {
-    changeImage(urlImage) {
-      this.productImageDefault = urlImage
-    }
-  }
 }
 </script>
